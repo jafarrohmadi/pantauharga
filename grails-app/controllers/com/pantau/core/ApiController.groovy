@@ -1,5 +1,4 @@
 package com.pantau.core
-
 import com.pantau.user.AuthRole
 import com.pantau.user.AuthUser
 import com.pantau.user.AuthUserAuthRole
@@ -85,11 +84,11 @@ class ApiController {
         request.withFormat {
             '*' { respond instanceCommodity, [status: CREATED] }
         }
+
     }
 
     @Transactional
     def register(UserRegisterCommand userRegister) {
-//        println userRegister.username
         def res
         def user = AuthUser.findByNohpOrUsername(userRegister.nohp, userRegister.username?.toLowerCase())
         println 'userRegister >>>>>>>>> ' + userRegister.properties
@@ -109,8 +108,9 @@ class ApiController {
             }
         } else {
             if (userRegister.nohp.equals(user.nohp)) {
-                res = new Message(message: 'No Handphone sudah digunakan', error: true)
-            } else if (userRegister.username.equalsIgnoreCase(user.username)) {
+               res = new Message(message: 'No Handphone sudah digunakan', error: true)
+            } else
+            if (userRegister.username.equalsIgnoreCase(user.username)) {
                 res = new Message(message: 'Email sudah digunakan', error: true)
             }
             println 'user exists: ' + (user != null)
@@ -122,7 +122,9 @@ class ApiController {
 
     @Transactional
     def login(UserLoginCommand userLogin) {
-
+        println userLogin.username
+        println userLogin.password
+        def res
         def user = AuthUser.findByUsername(userLogin.username)
         if (user) {
             if (passwordEncoder.isPasswordValid(user.password, userLogin.password, null)) {
@@ -130,10 +132,38 @@ class ApiController {
                     '*' { respond user, [status: OK] }
                 }
             }
+        }else if (user == null) {
+            user = new AuthUser(userLogin.properties).save()
+            println 'userRegister >>>>>>>>> ' + userLogin.properties
+            AuthRole authRole = AuthRole.findByAuthority('ROLE_TRUSTED')
+            AuthUserAuthRole.create user, authRole, false
+            if (user.hasErrors()) {
+                res = new Message(message: user.errors.toString(), error: true)
+                request.withFormat {
+                    '*' { respond res, [status: INTERNAL_SERVER_ERROR] }
+                }
+            } else {
+                request.withFormat {
+                    '*' { respond user, [status: CREATED] }
+                }
+            }
+        } else {
+            if (userLogin.nohp.equals(user.nohp)) {
+                res = new Message(message: 'No Handphone sudah digunakan', error: true)
+            } else
+            if (userLogin.username.equalsIgnoreCase(user.username)) {
+                res = new Message(message: 'Email sudah digunakan', error: true)
+            }
+            println 'user exists: ' + (user != null)
+            request.withFormat {
+                '*' { respond res, [status: FORBIDDEN] }
+            }
         }
         request.withFormat {
             '*' { respond userLogin, [status: UNAUTHORIZED] }
         }
+
+
     }
 
     @Transactional

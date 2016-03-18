@@ -17,7 +17,7 @@ class ComodityInput {
     Integer type
     String description
     String keterangan
-    Double plus(ComodityInput other) {
+    Double plus (ComodityInput other) {
         delta + other.delta
     }
     static belongsTo = [
